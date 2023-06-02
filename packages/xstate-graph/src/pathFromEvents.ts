@@ -31,7 +31,7 @@ export function getPathsFromEvents<
       ? createDefaultMachineOptions(logic)
       : createDefaultLogicOptions(logic)
   );
-  const actorContext = undefined as any; // TODO: figure out the simulation API
+  const actorContext = { self: {} } as any; // TODO: figure out the simulation API
   const fromState =
     resolvedOptions.fromState ?? logic.getInitialState(actorContext, undefined);
 

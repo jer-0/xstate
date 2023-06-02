@@ -23,7 +23,8 @@ import {
   StateValueMap,
   RaiseActionObject,
   InitialTransitionConfig,
-  MachineContext
+  MachineContext,
+  AnyActorRef
 } from './types.ts';
 import { cloneState, State } from './State.ts';
 import {
@@ -68,7 +69,8 @@ type AdjList = Map<AnyStateNode, Array<AnyStateNode>>;
 function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   configuration: StateNode<TContext, TEvent>[],
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  self: AnyActorRef
 ) {
   const machine = configuration[0].machine;
   const finalChildStateNode = configuration.find(
@@ -77,7 +79,7 @@ function getOutput<TContext extends MachineContext, TEvent extends EventObject>(
   );
 
   return finalChildStateNode && finalChildStateNode.output
-    ? mapContext(finalChildStateNode.output, context, event)
+    ? mapContext(finalChildStateNode.output, context, event, self)
     : undefined;
 }
 
@@ -1149,7 +1151,8 @@ function microstepProcedure(
     actions,
     internalQueue,
     currentState,
-    historyValue
+    historyValue,
+    actorCtx.self
   );
 
   const nextConfiguration = [...mutConfiguration];
@@ -1172,7 +1175,7 @@ function microstepProcedure(
     );
 
     const output = done
-      ? getOutput(nextConfiguration, nextState.context, event)
+      ? getOutput(nextConfiguration, nextState.context, event, actorCtx.self)
       : undefined;
 
     internalQueue.push(...nextState._internalQueue);
@@ -1201,7 +1204,8 @@ function enterStates(
   actions: BaseActionObject[],
   internalQueue: AnyEventObject[],
   currentState: AnyState,
-  historyValue: HistoryValue<any, any>
+  historyValue: HistoryValue<any, any>,
+  self: AnyActorRef
 ): void {
   const statesToEnter = new Set<AnyStateNode>();
   const statesForDefaultEntry = new Set<AnyStateNode>();
@@ -1250,7 +1254,8 @@ function enterStates(
             ? mapContext(
                 stateNodeToEnter.output,
                 currentState.context,
-                currentState.event
+                currentState.event,
+                self
               )
             : undefined
         )

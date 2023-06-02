@@ -120,14 +120,23 @@ export interface ActionMeta<
   action: TAction;
 }
 
-export type InputFrom<T extends AnyActorLogic> = T extends ActorLogic<
+export type InputFrom<T extends AnyActorLogic> = T extends StateMachine<
+  infer _TContext,
   infer _TEvent,
-  infer _TSnapshot,
-  infer _TInternalState,
-  infer _TPersisted,
-  infer _TSystem,
-  infer TInput
+  infer _TActions,
+  infer _TActors,
+  infer TInput,
+  infer _TResolvedTypesMeta
 >
+  ? TInput
+  : T extends ActorLogic<
+      infer _TEvent,
+      infer _TSnapshot,
+      infer _TInternalState,
+      infer _TPersisted,
+      infer _TSystem,
+      infer TInput
+    >
   ? TInput
   : any; // TODO: never?
 
@@ -483,9 +492,10 @@ export type StatesConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActors extends ActorImpl
+  TActors extends ActorImpl,
+  TInput
 > = {
-  [K in string]: StateNodeConfig<TContext, TEvent, TAction, TActors>;
+  [K in string]: StateNodeConfig<TContext, TEvent, TAction, TActors, TInput>;
 };
 
 export type StatesDefinition<
@@ -535,7 +545,8 @@ export type TransitionsConfig<
 export type InvokeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
-  TActors extends ActorImpl
+  TActors extends ActorImpl,
+  _TInput
 > = TActors extends { src: infer TSrc }
   ? {
       /**
@@ -628,7 +639,8 @@ export interface StateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TAction extends ParameterizedObject,
-  TActors extends ActorImpl
+  TActors extends ActorImpl,
+  TInput
 > {
   /**
    * The initial state transition.
@@ -656,12 +668,12 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TEvent, TAction, TActors> | undefined;
+  states?: StatesConfig<TContext, TEvent, TAction, TActors, TInput> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    TActors['src'] | InvokeConfig<TContext, TEvent, TActors>
+    TActors['src'] | InvokeConfig<TContext, TEvent, TActors, TInput>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -776,14 +788,14 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any>;
 
 export type AnyState = State<any, any, any, any, any>;
 
-export type AnyStateMachine = StateMachine<any, any, any, any, any>;
+export type AnyStateMachine = StateMachine<any, any, any, any, any, any>;
 
 export type AnyStateConfig = StateConfig<any, AnyEventObject>;
 
 export interface AtomicStateNodeConfig<
   TContext extends MachineContext,
   TEvent extends EventObject
-> extends StateNodeConfig<TContext, TEvent, TODO, TODO> {
+> extends StateNodeConfig<TContext, TEvent, TODO, TODO, TODO> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -817,7 +829,7 @@ export type SimpleOrStateNodeConfig<
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TEvent, TODO, TODO>;
+  | StateNodeConfig<TContext, TEvent, TODO, TODO, TODO>;
 
 export type ActionFunctionMap<
   TContext extends MachineContext,
@@ -1003,7 +1015,10 @@ export type InternalMachineImplementations<
         | (TActors & { src: K })['logic']
         | {
             src: (TActors & { src: K })['logic'];
-            input: Mapper<TContext, TEvents, any> | any;
+            input:
+              | Mapper<TContext, TEvents, any>
+              // TODO: make default input type
+              | (number | string | boolean | null | undefined | object);
           };
     };
   };
@@ -1022,16 +1037,16 @@ export type MachineImplementations<
   ResolveTypegenMeta<TTypesMeta, TEvent, TAction, TActors>
 >;
 
-type InitialContext<TContext extends MachineContext> =
+type InitialContext<TContext extends MachineContext, TInput> =
   | TContext
-  | ContextFactory<TContext>;
+  | ContextFactory<TContext, TInput>;
 
-export type ContextFactory<TContext extends MachineContext> = ({
+export type ContextFactory<TContext extends MachineContext, TInput> = ({
   spawn,
   input
 }: {
   spawn: Spawner;
-  input: any; // TODO: fix
+  input: TInput; // TODO: fix
 }) => TContext;
 
 export interface MachineConfig<
@@ -1039,22 +1054,24 @@ export interface MachineConfig<
   TEvent extends EventObject,
   TAction extends ParameterizedObject = ParameterizedObject,
   TActors extends ActorImpl = ActorImpl,
+  TInput = any,
   TTypesMeta = TypegenDisabled
 > extends StateNodeConfig<
     NoInfer<TContext>,
     NoInfer<TEvent>,
     NoInfer<TAction>,
-    NoInfer<TActors>
+    NoInfer<TActors>,
+    NoInfer<TInput>
   > {
   /**
    * The initial context (extended state)
    */
-  context?: InitialContext<LowInfer<TContext>>;
+  context?: InitialContext<LowInfer<TContext>, TInput>;
   /**
    * The machine's own version.
    */
   version?: string;
-  types?: MachineTypes<TContext, TEvent, TActors, TTypesMeta>;
+  types?: MachineTypes<TContext, TEvent, TActors, TInput, TTypesMeta>;
 }
 
 export interface ActorImpl {
@@ -1072,6 +1089,7 @@ export interface MachineTypes<
   TContext extends MachineContext,
   TEvent extends EventObject,
   TActors extends ActorImpl,
+  TInput,
   TTypesMeta = TypegenDisabled
 > {
   context?: TContext;
@@ -1080,6 +1098,7 @@ export interface MachineTypes<
   events?: TEvent;
   guards?: { type: string; [key: string]: any };
   typegen?: TTypesMeta;
+  input?: TInput;
 }
 
 export interface HistoryStateNode<TContext extends MachineContext>
@@ -1382,7 +1401,7 @@ export type Mapper<
 > = (args: {
   context: TContext;
   event: TEvent;
-  // self: ActorRef<TEvent>;
+  self: ActorRef<TEvent>;
 }) => TParams;
 
 export type PropertyMapper<
@@ -1575,7 +1594,7 @@ export interface StateConfig<
   done?: boolean;
   output?: any;
   tags?: Set<string>;
-  machine?: StateMachine<TContext, TEvent, any, any, any>;
+  machine?: StateMachine<TContext, TEvent, any, any, any, any>;
   _internalQueue?: Array<TEvent>;
 }
 
@@ -1707,6 +1726,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer TEvent,
       any,
       any,
+      any,
       infer TResolvedTypesMeta
     >
     ? ActorRef<
@@ -1745,6 +1765,7 @@ export type InterpreterFrom<
   infer TEvent,
   infer TActions,
   infer TActors,
+  infer TInput,
   infer TResolvedTypesMeta
 >
   ? Interpreter<
@@ -1754,7 +1775,9 @@ export type InterpreterFrom<
         State<TContext, TEvent, TActions, TActors, TResolvedTypesMeta>,
         PersistedMachineState<
           State<TContext, TEvent, TActions, TActors, TResolvedTypesMeta>
-        >
+        >,
+        ActorSystem<any>,
+        TInput
       >
     >
   : never;
@@ -1767,6 +1790,7 @@ export type MachineImplementationsFrom<
   infer TEvent,
   infer TActions,
   infer TActors,
+  infer _TInput,
   infer TResolvedTypesMeta
 >
   ? InternalMachineImplementations<
@@ -1784,13 +1808,15 @@ export type __ResolvedTypesMetaFrom<T> = T extends StateMachine<
   any,
   any,
   any,
+  any,
+  any,
   infer TResolvedTypesMeta
 >
   ? TResolvedTypesMeta
   : never;
 
 export type EventOfMachine<TMachine extends AnyStateMachine> =
-  TMachine extends StateMachine<any, infer E, any, any, any> ? E : never;
+  TMachine extends StateMachine<any, infer E, any, any, any, any> ? E : never;
 
 export interface ActorContext<
   TEvent extends EventObject,
@@ -1858,7 +1884,8 @@ export type SnapshotFrom<T> = ReturnTypeOrValue<T> extends infer R
         infer __,
         infer ___,
         infer ____,
-        infer _____
+        infer _____,
+        infer ______
       >
     ? StateFrom<R>
     : R extends ActorLogic<
@@ -1911,7 +1938,8 @@ type ResolveEventType<T> = ReturnTypeOrValue<T> extends infer R
       infer TEvent,
       infer __,
       infer ___,
-      infer ____
+      infer ____,
+      infer _____
     >
     ? TEvent
     : R extends State<
@@ -1938,7 +1966,8 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       infer _,
       infer __,
       infer ___,
-      infer ____
+      infer ____,
+      infer _____
     >
     ? TContext
     : R extends State<
@@ -1949,7 +1978,14 @@ export type ContextFrom<T> = ReturnTypeOrValue<T> extends infer R
       >
     ? TContext
     : R extends Interpreter<infer TActorLogic>
-    ? TActorLogic extends StateMachine<infer TContext, infer _>
+    ? TActorLogic extends StateMachine<
+        infer TContext,
+        infer _TEvent,
+        infer _TActions,
+        infer _TActors,
+        infer _TInput,
+        infer _TTypesMeta
+      >
       ? TContext
       : never
     : never

@@ -42,7 +42,8 @@ import type {
   ParameterizedObject,
   AnyActorContext,
   AnyEventObject,
-  ActorImpl
+  ActorImpl,
+  TODO
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -62,9 +63,10 @@ function createDefaultOptions() {
 
 export class StateMachine<
   TContext extends MachineContext,
-  TEvent extends EventObject = EventObject,
-  TAction extends ParameterizedObject = ParameterizedObject,
-  TActors extends ActorImpl = ActorImpl,
+  TEvent extends EventObject,
+  TAction extends ParameterizedObject,
+  TActors extends ActorImpl,
+  TInput,
   TResolvedTypesMeta = ResolveTypegenMeta<
     TypegenDisabled,
     NoInfer<TEvent>,
@@ -78,7 +80,10 @@ export class StateMachine<
       State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>,
       PersistedMachineState<
         State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>
-      >
+      >,
+      TODO,
+      TInput,
+      TODO
     >
 {
   // TODO: this getter should be removed
@@ -119,7 +124,7 @@ export class StateMachine<
 
   public options: MachineImplementationsSimplified<TContext, TEvent>;
 
-  public types: MachineTypes<TContext, TEvent, TActors>;
+  public types: MachineTypes<TContext, TEvent, TActors, TInput>;
 
   public __xstatenode: true = true;
 
@@ -148,7 +153,7 @@ export class StateMachine<
 
     this.root = new StateNode(config, {
       _key: this.id,
-      _machine: this
+      _machine: this as any
     });
 
     this.root._initialize();
@@ -180,6 +185,7 @@ export class StateMachine<
     TEvent,
     TAction,
     TActors,
+    TInput,
     AreAllImplementationsAssumedToBeProvided<TResolvedTypesMeta> extends false
       ? MarkAllImplementationsAsProvided<TResolvedTypesMeta>
       : TResolvedTypesMeta
@@ -513,4 +519,6 @@ export class StateMachine<
   __TActorMap!: TActors;
   /** @deprecated an internal property acting as a "phantom" type, not meant to be used at runtime */
   __TResolvedTypesMeta!: TResolvedTypesMeta;
+
+  __TInput!: TInput;
 }

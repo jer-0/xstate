@@ -896,10 +896,10 @@ describe('interpreter', () => {
         }
       });
 
-      const parentMachine = createMachine<
-        any,
-        { type: 'NEXT'; password: string }
-      >({
+      const parentMachine = createMachine({
+        types: {} as {
+          events: { type: 'NEXT'; password: string };
+        },
         id: 'parent',
         initial: 'start',
         states: {

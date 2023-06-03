@@ -289,7 +289,7 @@ export class StateMachine<
    */
   private getPreInitialState(
     actorCtx: AnyActorContext,
-    input: any
+    input: TInput
   ): State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta> {
     const [context, actions] = this.getContextAndActions(actorCtx, input);
     const config = getInitialConfiguration(this.root);

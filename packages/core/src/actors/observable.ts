@@ -3,7 +3,8 @@ import {
   EventObject,
   Subscription,
   ActorSystem,
-  ActorLogic
+  ActorLogic,
+  AnyEventObject
 } from '../types';
 import { stopSignalType } from '../actors';
 
@@ -19,11 +20,10 @@ export type ObservablePersistedState<T> = Omit<
   'subscription'
 >;
 
-// TODO: this likely shouldn't accept TEvent, observable actor doesn't accept external events
-export function fromObservable<T, TEvent extends EventObject, TInput>(
+export function fromObservable<T, TInput>(
   observableCreator: ({ input }: { input: TInput }) => Subscribable<T>
 ): ActorLogic<
-  TEvent,
+  AnyEventObject,
   T | undefined,
   ObservableInternalState<T>,
   ObservablePersistedState<T>,

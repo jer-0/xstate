@@ -561,7 +561,9 @@ export type InvokeConfig<
        */
       src: TSrc | ActorLogic<any, any>; // TODO: fix types
 
-      input?: Mapper<TContext, TEvent, TActors['input']> | TActors['input'];
+      input?:
+        | Mapper<TContext, TEvent, TActors['input']>
+        | AnythingButAFunction<TActors['input']>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
@@ -1411,7 +1413,7 @@ export type PropertyMapper<
 > = {
   [K in keyof TParams]?:
     | ((args: { context: TContext; event: TEvent }) => TParams[K])
-    | TParams[K];
+    | AnythingButAFunction<TParams[K]>;
 };
 
 export interface AnyAssignAction extends BaseActionObject {
@@ -2028,3 +2030,7 @@ export type PersistedMachineState<TState extends AnyState> = Pick<
 };
 
 export type WithDefault<T, TDefault> = T extends undefined ? TDefault : T;
+
+export type AnythingButAFunction<T> = IsAny<T> extends true
+  ? string | number | boolean | object | symbol
+  : T;

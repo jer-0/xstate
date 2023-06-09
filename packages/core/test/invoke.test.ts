@@ -185,8 +185,15 @@ describe('invoke', () => {
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {
-    const childMachine = createMachine<{ userId: string | undefined }>({
+    const childMachine = createMachine({
       id: 'fetch',
+      types: {} as {
+        context: { userId: string | undefined };
+        events: {
+          type: 'RESOLVE';
+          user: typeof user;
+        };
+      },
       context: ({ input }) => ({
         userId: input.userId
       }),
@@ -1349,12 +1356,8 @@ describe('invoke', () => {
         },
         {
           actors: {
-            someCallback: fromCallback(
-              (
-                cb,
-                _receive,
-                { input }: { input: { foo: boolean; event: any } }
-              ) => {
+            someCallback: fromCallback<never, { foo: boolean; event: any }>(
+              (cb, _receive, { input }) => {
                 if (input.foo && input.event.type === 'BEGIN') {
                   cb({
                     type: 'CALLBACK',
@@ -2877,8 +2880,8 @@ describe('invoke', () => {
       },
       {
         actors: {
-          search: fromPromise(
-            async ({ input }: { input: { endpoint: string } }) => {
+          search: fromPromise<number, { endpoint: string }>(
+            async ({ input }) => {
               expect(input.endpoint).toEqual('example.com');
 
               return await 42;

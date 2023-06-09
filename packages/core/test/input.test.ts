@@ -1,5 +1,5 @@
 import { of } from 'rxjs';
-import { AnyActorRef, assign, interpret } from '../src';
+import { AnyActorRef, AnyEventObject, assign, interpret } from '../src';
 import { createMachine } from '../src/Machine';
 import {
   fromCallback,
@@ -15,8 +15,9 @@ describe('input', () => {
     const machine = createMachine({
       types: {} as {
         context: { count: number };
+        input: { startCount: number };
       },
-      context: ({ input }: { input: { startCount: number } }) => ({
+      context: ({ input }) => ({
         count: input.startCount
       }),
       entry: ({ context }) => {
@@ -153,8 +154,8 @@ describe('input', () => {
   });
 
   it('should create a promise with input', async () => {
-    const promiseLogic = fromPromise(
-      ({ input }: { input: { count: number } }) => Promise.resolve(input)
+    const promiseLogic = fromPromise<{ count: number }, { count: number }>(
+      ({ input }) => Promise.resolve(input)
     );
 
     const promiseActor = interpret(promiseLogic, {
@@ -180,9 +181,10 @@ describe('input', () => {
   });
 
   it('should create an observable actor with input', (done) => {
-    const observableLogic = fromObservable(
-      ({ input }: { input: { count: number } }) => of(input)
-    );
+    const observableLogic = fromObservable<
+      { count: number },
+      { count: number }
+    >(({ input }) => of(input));
 
     const observableActor = interpret(observableLogic, {
       input: { count: 42 }
@@ -199,10 +201,12 @@ describe('input', () => {
   });
 
   it('should create a callback actor with input', (done) => {
-    const callbackLogic = fromCallback((_sendBack, _receive, { input }) => {
-      expect(input).toEqual({ count: 42 });
-      done();
-    });
+    const callbackLogic = fromCallback<AnyEventObject, { count: number }>(
+      (_sendBack, _receive, { input }) => {
+        expect(input).toEqual({ count: 42 });
+        done();
+      }
+    );
 
     interpret(callbackLogic, {
       input: { count: 42 }

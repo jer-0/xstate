@@ -1458,7 +1458,8 @@ export function resolveActionsAndContext<
     if (actorCtx?.self.status === ActorStatus.Running) {
       action.execute?.(actorCtx!);
     } else {
-      actorCtx?.defer(() => action.execute?.(actorCtx!));
+      // TODO: just defer() when simulation PR is merged
+      actorCtx?.defer?.(() => action.execute?.(actorCtx!));
     }
   }
 

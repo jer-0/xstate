@@ -554,7 +554,7 @@ export type InvokeConfig<
       /**
        * The source of the machine to be invoked, or the machine itself.
        */
-      src: TSrc | ActorLogic<any, any>; // TODO: fix types
+      src: TSrc | AnyActorLogic; // TODO: fix types
 
       input?:
         | Mapper<

@@ -570,7 +570,7 @@ export function resolveTarget(
           resolvedTarget
         );
         return targetStateNode;
-      } catch (err) {
+      } catch (err: any) {
         throw new Error(
           `Invalid transition definition for state node '${stateNode.id}':\n${
             (err as Error).message

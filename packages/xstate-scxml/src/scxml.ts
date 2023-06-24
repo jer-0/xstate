@@ -14,7 +14,9 @@ import {
   assign,
   cancel,
   choose,
-  AnyStateNode
+  AnyStateNode,
+  StateNodeConfig,
+  AnyStateNodeConfig
 } from 'xstate';
 import { not, stateIn } from 'xstate/guards';
 
@@ -68,12 +70,9 @@ function getAttribute(
 
 function indexedRecord<T extends {}>(
   items: T[],
-  identifier: string | ((item: T) => string)
+  identifierFn: (item: T) => string
 ): Record<string, T> {
   const record: Record<string, T> = {};
-
-  const identifierFn =
-    typeof identifier === 'string' ? (item: T) => item[identifier] : identifier;
 
   items.forEach((item) => {
     const key = identifierFn(item);
@@ -357,7 +356,7 @@ function toConfig(
   nodeJson: XMLElement,
   id: string,
   options: ScxmlToMachineOptions
-) {
+): AnyStateNodeConfig {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   const { elements } = nodeJson;
@@ -485,7 +484,7 @@ function toConfig(
       : undefined;
 
     const onExit = onExitElements
-      ? onExitElements.map((onExitElement) =>
+      ? onExitElements.flatMap((onExitElement) =>
           mapActions(onExitElement.elements!)
         )
       : undefined;
@@ -572,7 +571,7 @@ function scxmlToMachine(
           }
 
           return acc;
-        }, {})
+        }, {} as Record<string, unknown>)
     : undefined;
 
   const machine = createMachine({

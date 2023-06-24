@@ -460,7 +460,7 @@ describe('input', () => {
     const machine = createMachine({
       invoke: {
         src: createMachine({}),
-        input: ({ self }) => spy(self)
+        input: ({ self }: any) => spy(self)
       }
     });
 
@@ -482,7 +482,7 @@ describe('input', () => {
         actors: {
           child: {
             src: createMachine({}),
-            input: ({ self }) => spy(self)
+            input: ({ self }: any) => spy(self)
           }
         }
       }

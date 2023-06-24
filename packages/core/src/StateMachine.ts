@@ -44,7 +44,8 @@ import type {
   AnyActorContext,
   AnyEventObject,
   ActorImpl,
-  TODO
+  TODO,
+  AnyActorRef
 } from './types.ts';
 import { isErrorEvent, resolveReferencedActor } from './utils.ts';
 
@@ -437,9 +438,10 @@ export class StateMachine<
       State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta>
     >
   ): State<TContext, TEvent, TAction, TActors, TResolvedTypesMeta> {
-    const children = {};
+    const children: Record<string, AnyActorRef> = {};
 
     Object.keys(state.children).forEach((actorId) => {
+      // @ts-ignore
       const actorData = state.children[actorId];
       const childState = actorData.state;
       const src = actorData.src;

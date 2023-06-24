@@ -10,6 +10,7 @@ import {
   MarkAllImplementationsAsProvided,
   AreAllImplementationsAssumedToBeProvided
 } from './typegenTypes.ts';
+import { PromiseActorEvents } from './actors/promise.ts';
 
 export type AnyFunction = (...args: any[]) => any;
 
@@ -757,6 +758,8 @@ export interface StateNodeConfig<
   target?: string;
 }
 
+export type AnyStateNodeConfig = StateNodeConfig<any, any, any, any, any>;
+
 export interface StateNodeDefinition<
   TContext extends MachineContext,
   TEvent extends EventObject
@@ -957,39 +960,60 @@ type GenerateActionsImplementationsPart<
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'actions',
-  Prop<TMissingImplementations, 'actions'>,
-  TRequireMissingImplementations
-> & {
-  actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
-};
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'actions',
+    Prop<TMissingImplementations, 'actions'>,
+    TRequireMissingImplementations
+  > & {
+    actions?: MachineImplementationsActions<TContext, TResolvedTypesMeta>;
+  }
+>;
+
+// type GenerateActorsImplementationsPart<
+//   TContext extends MachineContext,
+//   TResolvedTypesMeta,
+//   TRequireMissingImplementations,
+//   TMissingImplementations
+// > = Compute<
+//   MaybeMakeMissingImplementationsRequired<
+//     'actors',
+//     Prop<TMissingImplementations, 'actors'>,
+//     TRequireMissingImplementations
+//   > & {
+//     actors?: MachineImplementationsActors<TContext, TResolvedTypesMeta>;
+//   }
+// >;
 
 type GenerateDelaysImplementationsPart<
   TContext extends MachineContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'delays',
-  Prop<TMissingImplementations, 'delays'>,
-  TRequireMissingImplementations
-> & {
-  delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
-};
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'delays',
+    Prop<TMissingImplementations, 'delays'>,
+    TRequireMissingImplementations
+  > & {
+    delays?: MachineImplementationsDelays<TContext, TResolvedTypesMeta>;
+  }
+>;
 
 type GenerateGuardsImplementationsPart<
   TContext extends MachineContext,
   TResolvedTypesMeta,
   TRequireMissingImplementations,
   TMissingImplementations
-> = MaybeMakeMissingImplementationsRequired<
-  'guards',
-  Prop<TMissingImplementations, 'guards'>,
-  TRequireMissingImplementations
-> & {
-  guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
-};
+> = Compute<
+  MaybeMakeMissingImplementationsRequired<
+    'guards',
+    Prop<TMissingImplementations, 'guards'>,
+    TRequireMissingImplementations
+  > & {
+    guards?: MachineImplementationsGuards<TContext, TResolvedTypesMeta>;
+  }
+>;
 
 export type InternalMachineImplementations<
   TContext extends MachineContext,
@@ -1008,6 +1032,12 @@ export type InternalMachineImplementations<
   TRequireMissingImplementations,
   TMissingImplementations
 > &
+  // GenerateActorsImplementationsPart<
+  //   TContext,
+  //   TResolvedTypesMeta,
+  //   TRequireMissingImplementations,
+  //   TMissingImplementations
+  // > &
   GenerateDelaysImplementationsPart<
     TContext,
     TResolvedTypesMeta,
@@ -1649,7 +1679,7 @@ export interface InterpreterOptions<TActorBehavior extends AnyActorLogic> {
   src?: string;
 }
 
-export type AnyInterpreter = Interpreter<any>;
+export type AnyInterpreter = Interpreter<any, any>;
 
 // Based on RxJS types
 export type Observer<T> = {
@@ -1744,7 +1774,7 @@ export type ActorRefFrom<T> = ReturnTypeOrValue<T> extends infer R
         >
       >
     : R extends Promise<infer U>
-    ? ActorRef<{ type: string }, U | undefined>
+    ? ActorRef<PromiseActorEvents<U>, U | undefined>
     : R extends ActorLogic<
         infer TEvent,
         infer TSnapshot,
@@ -1851,7 +1881,7 @@ export interface ActorLogic<
   config?: unknown;
   transition: (
     state: TInternalState,
-    message: TEvent | LifecycleSignal,
+    message: TEvent,
     ctx: ActorContext<TEvent, TSnapshot, TSystem>
   ) => TInternalState;
   getInitialState: (

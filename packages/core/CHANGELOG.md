@@ -1,5 +1,29 @@
 # xstate
 
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- [#4123](https://github.com/statelyai/xstate/pull/4123) [`b13bfcb08`](https://github.com/statelyai/xstate/commit/b13bfcb081ba3c7216159b90999ddd90448024f1) Thanks [@Andarist](https://github.com/Andarist)! - Removed the ability to configure transitions using arrays:
+
+  ```ts
+  createMachine({
+    on: [{ event: 'FOO', target: '#id' }]
+    // ...
+  });
+  ```
+
+  Only regular object-based configs will be supported from now on:
+
+  ```ts
+  createMachine({
+    on: {
+      FOO: '#id'
+    }
+    // ...
+  });
+  ```
+
 ## 5.0.0-beta.16
 
 ### Major Changes
